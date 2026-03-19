@@ -1,17 +1,15 @@
-version: '3.8'
 services:
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
     command:
       - '--path.rootfs=/host'
+      - '--web.listen-address=:${NODE_EXPORTER_PORT:-9100}'
     network_mode: host
     pid: host
     restart: unless-stopped
     volumes:
       - '/:/host:ro,rslave'
-    ports:
-      - "${NODE_EXPORTER_PORT}:9100"
     environment:
       - TZ=UTC
     logging:
