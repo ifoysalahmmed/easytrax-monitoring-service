@@ -31,4 +31,4 @@ if __name__ == "__main__":
         for queue in QUEUES:
             length = r.llen(queue)
             QUEUE_SIZE.labels(queue_name=queue).set(length)
-        time.sleep(int(os.getenv("POLL_INTERVAL", 15)))
+        time.sleep(int(getenv("POLL_INTERVAL", 15)))
