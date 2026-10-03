@@ -5,21 +5,20 @@ Central monitoring for the Easytrax platform: Celery queue lengths, server resou
 ```
 Redis ──► celery-exporter ─┐
 servers ─► node_exporter ──┼─► Prometheus ─► Grafana (dashboards) 
-Postgres ► postgres_exporter┘        └─► alert rules
-app logs ─► Fluent Bit ─► Elasticsearch ─► Kibana
+Postgres ► postgres_exporter┘        └─► alert rules ─► Alertmanager ─► Telegram
 ```
 
 ## Repository layout
 
 | Path | What it is |
 |---|---|
-| `docker-compose.yml` | Central stack: Prometheus and node_exporter. Run on the monitoring host. |
+| `docker-compose.yml` | Central stack: Prometheus, Alertmanager and node_exporter. Run on the monitoring host. |
 | `prometheus/prometheus.yml` | Scrape targets. |
+| `alertmanager/alertmanager.yml` | Sends alerts to the Telegram group. |
 | `prometheus/rules/alerts.yml` | Alert rules (target down, queue backlog, disk, memory). |
 | `grafana/dashboards/` | Exported Grafana dashboards (backup and import source). |
 | `celery-exporter/` | Small Python exporter that publishes `celery_queue_length{queue_name}` from Redis. Runs next to the broker. |
 | `node-exporter/` | Docker Compose for node_exporter on a server that needs host metrics. |
-| `fluent-bit/` | Docker Compose that tails the Celery alarm log and ships it to Elasticsearch. |
 
 Grafana and Kibana are installed on the monitoring host as system services and are not run from this repo. Their dashboards and data source are described below.
 
@@ -33,7 +32,7 @@ cd easytrax-monitoring-service
 docker compose up -d
 ```
 
-Prometheus listens on port 9090 and node_exporter on 9100. Both use host networking. After changing `prometheus/prometheus.yml` or the rules, reload with:
+Prometheus listens on port 9090, Alertmanager on 127.0.0.1:9093 and node_exporter on 9100. Both use host networking. After changing `prometheus/prometheus.yml` or the rules, reload with:
 
 ```bash
 docker compose restart prometheus
