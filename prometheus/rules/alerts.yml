@@ -21,3 +21,17 @@ groups:
         for: 10m
         annotations:
           summary: "{{ $labels.host }} memory at {{ $value | printf \"%.0f\" }}%"
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 2m
+        annotations:
+          summary: "PostgreSQL is down (exporter cannot reach it)"
+      - alert: PostgresConnectionsHigh
+        expr: sum(pg_stat_activity_count) / max(pg_settings_max_connections) * 100 > 80
+        for: 10m
+        annotations:
+          summary: "PostgreSQL connections at {{ $value | printf \"%.0f\" }}% of max_connections"
+      - alert: PostgresDeadlocks
+        expr: increase(pg_stat_database_deadlocks[15m]) > 0
+        annotations:
+          summary: "PostgreSQL deadlocks detected in {{ $labels.datname }}"
