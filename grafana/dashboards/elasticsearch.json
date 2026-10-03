@@ -34,7 +34,7 @@
             "type": "prometheus",
             "uid": "dfwvd0wuvbmyoc"
           },
-          "expr": "elasticsearch_cluster_health_status{color=\"red\"} * 2 + elasticsearch_cluster_health_status{color=\"yellow\"}",
+          "expr": "elasticsearch_cluster_health_status{color=\"red\"} * 2 + ignoring(color) elasticsearch_cluster_health_status{color=\"yellow\"}",
           "refId": "A"
         }
       ],
