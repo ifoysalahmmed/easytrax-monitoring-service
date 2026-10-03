@@ -19,7 +19,6 @@ Postgres --> postgres_exporter ---/     |
 | `prometheus/rules/alerts.yml` | Alert rules (target down, queue backlog, disk, memory). |
 | `grafana/dashboards/` | Dashboards loaded into Grafana automatically (provisioned). Edit these files in git, not in the Grafana UI. |
 | `grafana/provisioning/` | Grafana provider config that points Grafana at `grafana/dashboards/`. |
-| `grafana/backups/` | Exports kept as backups only (not loaded). `celery-monitoring.v2.json` is the "Celery Monitoring" dashboard, which is still managed in the Grafana UI. |
 | `celery-exporter/` | Small Python exporter that publishes `celery_queue_length{queue_name}` from Redis. Runs next to the broker. |
 | `node-exporter/` | Docker Compose for node_exporter on a server that needs host metrics. |
 
