@@ -80,7 +80,7 @@ Defined in `prometheus/rules/alerts.yml`:
 - `DiskAlmostFull`: a filesystem is more than 85% full for 10 minutes.
 - `HighMemoryUse`: memory use is above 90% for 10 minutes.
 
-Alertmanager is not set up yet, so these alerts are visible in Prometheus and Grafana but are not sent anywhere.
+Alerts go through Alertmanager (`alertmanager/alertmanager.yml`) to the "Easytrax Alert" Telegram group. The bot token is not in git: on the monitoring host, put it in `/srv/monitoring/secrets/telegram_token` (readable only by the container user) before running `docker compose up -d`.
 
 ## Secrets
 

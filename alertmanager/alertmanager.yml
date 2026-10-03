@@ -1,0 +1,19 @@
+route:
+  receiver: telegram
+  group_by: [alertname, host]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      # The bot token is a secret: it lives only on the monitoring host, never in git.
+      - bot_token_file: /etc/alertmanager/secrets/telegram_token
+        chat_id: -5354241457
+        send_resolved: true
+        parse_mode: ""
+        message: |-
+          {{ range .Alerts }}{{ if eq .Status "firing" }}🔥 FIRING{{ else }}✅ RESOLVED{{ end }}: {{ .Labels.alertname }}
+          {{ .Annotations.summary }}
+          {{ end }}
