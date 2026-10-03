@@ -35,3 +35,23 @@ groups:
         expr: increase(pg_stat_database_deadlocks[15m]) > 0
         annotations:
           summary: "PostgreSQL deadlocks detected in {{ $labels.datname }}"
+      - alert: ElasticsearchDown
+        expr: elasticsearch_clusterinfo_up == 0
+        for: 2m
+        annotations:
+          summary: "Elasticsearch exporter cannot reach the cluster"
+      - alert: ElasticsearchClusterRed
+        expr: elasticsearch_cluster_health_status{color="red"} == 1
+        for: 2m
+        annotations:
+          summary: "Elasticsearch cluster {{ $labels.cluster }} is RED"
+      - alert: ElasticsearchUnassignedShards
+        expr: elasticsearch_cluster_health_unassigned_shards > 0
+        for: 15m
+        annotations:
+          summary: "Elasticsearch has {{ $value }} unassigned shards"
+      - alert: ElasticsearchHeapHigh
+        expr: elasticsearch_jvm_memory_used_bytes{area="heap"} / elasticsearch_jvm_memory_max_bytes{area="heap"} * 100 > 90
+        for: 10m
+        annotations:
+          summary: "Elasticsearch JVM heap at {{ $value | printf \"%.0f\" }}%"
