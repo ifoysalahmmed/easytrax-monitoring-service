@@ -41,3 +41,9 @@ scrape_configs:
         labels: { host: parser }
       - targets: ["160.191.150.118:9100"]
         labels: { host: broker }
+
+  # Elasticsearch (elasticsearch_exporter, read-only login on the database server)
+  - job_name: elasticsearch
+    static_configs:
+      - targets: ["182.48.91.234:9114"]
+        labels: { host: database }
