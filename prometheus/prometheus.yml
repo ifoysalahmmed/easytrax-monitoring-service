@@ -47,3 +47,9 @@ scrape_configs:
     static_configs:
       - targets: ["182.48.91.234:9114"]
         labels: { host: database }
+
+  # MongoDB (mongodb_exporter, read-only clusterMonitor login on the database server)
+  - job_name: mongodb
+    static_configs:
+      - targets: ["182.48.91.234:9216"]
+        labels: { host: database }
