@@ -3,9 +3,10 @@
 Central monitoring for the Easytrax platform: Celery queue lengths, server resource usage and logs, in one place.
 
 ```
-Redis ──► celery-exporter ─┐
-servers ─► node_exporter ──┼─► Prometheus ─► Grafana (dashboards) 
-Postgres ► postgres_exporter┘        └─► alert rules ─► Alertmanager ─► Telegram
+Redis    --> celery-exporter -----\
+servers  --> node_exporter -------+--> Prometheus --> Grafana (dashboards)
+Postgres --> postgres_exporter ---/     |
+                                        +--> alert rules --> Alertmanager --> Telegram
 ```
 
 ## Repository layout
@@ -16,7 +17,9 @@ Postgres ► postgres_exporter┘        └─► alert rules ─► Alertmanag
 | `prometheus/prometheus.yml` | Scrape targets. |
 | `alertmanager/alertmanager.yml` | Sends alerts to the Telegram group. |
 | `prometheus/rules/alerts.yml` | Alert rules (target down, queue backlog, disk, memory). |
-| `grafana/dashboards/` | Exported Grafana dashboards (backup and import source). |
+| `grafana/dashboards/` | Dashboards loaded into Grafana automatically (provisioned). Edit these files in git, not in the Grafana UI. |
+| `grafana/provisioning/` | Grafana provider config that points Grafana at `grafana/dashboards/`. |
+| `grafana/backups/` | Exports kept as backups only (not loaded). `celery-monitoring.v2.json` is the "Celery Monitoring" dashboard, which is still managed in the Grafana UI. |
 | `celery-exporter/` | Small Python exporter that publishes `celery_queue_length{queue_name}` from Redis. Runs next to the broker. |
 | `node-exporter/` | Docker Compose for node_exporter on a server that needs host metrics. |
 
@@ -38,7 +41,18 @@ Prometheus listens on port 9090, Alertmanager on 127.0.0.1:9093 and node_exporte
 docker compose restart prometheus
 ```
 
-Then, in Grafana, add a Prometheus data source pointing at `http://<monitoring-host>:9090` and import `grafana/dashboards/celery-monitoring.json`.
+Then, in Grafana, add a Prometheus data source pointing at `http://<monitoring-host>:9090`.
+
+### Dashboards from git
+
+Grafana loads every `*.json` file in `grafana/dashboards/` and re-reads the folder every 30 seconds, so after `git pull` on the monitoring host the dashboards update by themselves. One-time setup on the host:
+
+```bash
+ln -s /srv/monitoring/easytrax-monitoring-service/grafana/provisioning/easytrax-dashboards.yaml /etc/grafana/provisioning/dashboards/easytrax-dashboards.yaml
+systemctl restart grafana-server
+```
+
+Provisioned dashboards are read-only in the UI. To change one, edit its JSON in git, merge, and pull.
 
 ## Adding a server to monitor
 

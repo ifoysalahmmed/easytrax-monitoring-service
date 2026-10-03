@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: easytrax
+    orgId: 1
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /srv/monitoring/easytrax-monitoring-service/grafana/dashboards

@@ -5,7 +5,8 @@
     "name": "adzj87b",
     "namespace": "default",
     "uid": "40d9764a-015c-437d-8312-a45803c2efaa",
-    "generation": 9,
+    "resourceVersion": "1791031799730017",
+    "generation": 10,
     "creationTimestamp": "2026-08-31T19:44:24Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "337815125725184"
@@ -15,7 +16,7 @@
       "grafana.app/folder": "",
       "grafana.app/saved-from-ui": "Grafana v13.2.0 (f681b1359f)",
       "grafana.app/updatedBy": "user:afwvcslk3b7y8d",
-      "grafana.app/updatedTimestamp": "2026-09-13T10:42:05Z"
+      "grafana.app/updatedTimestamp": "2026-10-03T12:49:59Z"
     }
   },
   "spec": {
@@ -689,7 +690,11 @@
     "links": [],
     "liveNow": false,
     "preload": false,
-    "tags": [],
+    "tags": [
+      "easytrax",
+      "celery",
+      "queues"
+    ],
     "timeSettings": {
       "timezone": "utc",
       "from": "now-1d",
