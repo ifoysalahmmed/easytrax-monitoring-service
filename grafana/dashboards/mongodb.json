@@ -151,7 +151,7 @@
             "type": "prometheus",
             "uid": "dfwvd0wuvbmyoc"
           },
-          "expr": "mongodb_connections{state=\"current\"} / (mongodb_connections{state=\"current\"} + mongodb_connections{state=\"available\"}) * 100",
+          "expr": "mongodb_connections{state=\"current\"} / ignoring(state) (mongodb_connections{state=\"current\"} + ignoring(state) mongodb_connections{state=\"available\"}) * 100",
           "refId": "A"
         }
       ],
