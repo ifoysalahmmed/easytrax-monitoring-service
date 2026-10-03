@@ -1,0 +1,27 @@
+# Central monitoring stack (runs on the staging server).
+# Grafana already runs there as grafana-server.service; only Prometheus and node_exporter are added here.
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    network_mode: host   # reaches localhost:9100 and remote exporters; listens on :9090
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    network_mode: host   # :9100
+    pid: host
+    command: [--path.rootfs=/host]
+    volumes:
+      - /:/host:ro,rslave
+
+volumes:
+  prometheus-data:
