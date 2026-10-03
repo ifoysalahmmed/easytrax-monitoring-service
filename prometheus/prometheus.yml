@@ -30,3 +30,5 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9100"]
         labels: { host: staging }
+      - targets: ["182.48.91.234:9100"]
+        labels: { host: database }
