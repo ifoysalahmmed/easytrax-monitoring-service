@@ -55,3 +55,18 @@ groups:
         for: 10m
         annotations:
           summary: "Elasticsearch JVM heap at {{ $value | printf \"%.0f\" }}%"
+      - alert: MongoDown
+        expr: mongodb_up == 0
+        for: 2m
+        annotations:
+          summary: "MongoDB exporter cannot reach mongod"
+      - alert: MongoConnectionsHigh
+        expr: mongodb_connections{state="current"} / (mongodb_connections{state="current"} + mongodb_connections{state="available"}) * 100 > 80
+        for: 10m
+        annotations:
+          summary: "MongoDB connections at {{ $value | printf \"%.0f\" }}% of the limit"
+      - alert: MongoLockQueue
+        expr: mongodb_ss_globalLock_currentQueue{count_type="total"} > 10
+        for: 5m
+        annotations:
+          summary: "MongoDB has {{ $value }} operations waiting on locks"
