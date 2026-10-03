@@ -61,7 +61,7 @@ groups:
         annotations:
           summary: "MongoDB exporter cannot reach mongod"
       - alert: MongoConnectionsHigh
-        expr: mongodb_connections{state="current"} / (mongodb_connections{state="current"} + mongodb_connections{state="available"}) * 100 > 80
+        expr: mongodb_connections{state="current"} / ignoring(state) (mongodb_connections{state="current"} + ignoring(state) mongodb_connections{state="available"}) * 100 > 80
         for: 10m
         annotations:
           summary: "MongoDB connections at {{ $value | printf \"%.0f\" }}% of the limit"
