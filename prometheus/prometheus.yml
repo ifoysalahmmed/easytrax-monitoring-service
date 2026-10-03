@@ -32,3 +32,7 @@ scrape_configs:
         labels: { host: staging }
       - targets: ["182.48.91.234:9100"]
         labels: { host: database }
+      - targets: ["160.191.150.108:9100"]
+        labels: { host: parser }
+      - targets: ["160.191.150.118:9100"]
+        labels: { host: broker }
