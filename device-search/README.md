@@ -12,6 +12,8 @@ The page searches the parser JSON logs that the parser server keeps until the ni
 
 ## What it shows
 
+The status, hints, details and timeline are in Bengali for non-technical users. The search form, buttons and raw log lines stay in English.
+
 - **Status** with what to check next:
   - No data from this device
   - Device has gone quiet
