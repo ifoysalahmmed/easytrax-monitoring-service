@@ -63,16 +63,25 @@ def check_token(header):
         if not cached[1]:
             raise NotAllowed()
         return
+    # Cloudflare in front of the backend blocks the default Python User-Agent.
     req = Request(f"{BACKEND_URL}/user/api/user_details/",
-                  headers={"Authorization": header, "Accept": "application/json"})
+                  headers={"Authorization": header, "Accept": "application/json",
+                           "User-Agent": "easytrax-device-check/1.0"})
     try:
         with urlopen(req, timeout=10) as resp:
-            allowed = json.load(resp).get("role_id") in ALLOWED_ROLES
+            role = json.load(resp).get("role_id")
+        allowed = role in ALLOWED_ROLES
+        if not allowed:
+            print(f"login refused: role {role} not allowed", flush=True)
     except HTTPError as e:
-        if e.code >= 500:
+        is_backend = "json" in (e.headers.get("Content-Type") or "")
+        print(f"login refused: backend answered {e.code}"
+              f"{'' if is_backend else ' (not the backend, e.g. a proxy block page)'}", flush=True)
+        if e.code >= 500 or not is_backend:
             raise RuntimeError("লগইন যাচাই করা যায়নি") from None
         allowed = False
-    except (URLError, TimeoutError, ValueError):
+    except (URLError, TimeoutError, ValueError) as e:
+        print(f"login check failed: {e}", flush=True)
         raise RuntimeError("লগইন যাচাই করা যায়নি") from None
     if len(TOKEN_CACHE) > 1000:
         for k in [k for k, v in TOKEN_CACHE.items() if v[0] <= now]:
