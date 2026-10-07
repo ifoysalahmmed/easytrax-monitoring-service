@@ -21,6 +21,7 @@ Postgres --> postgres_exporter ---/     |
 | `grafana/provisioning/` | Grafana provider config that points Grafana at `grafana/dashboards/`. |
 | `celery-exporter/` | Small Python exporter that publishes `celery_queue_length{queue_name}` from Redis. Runs next to the broker. |
 | `node-exporter/` | Docker Compose for node_exporter on a server that needs host metrics. |
+| `device-search/` | "Device check" page for onboarding: search today's parser logs by IMEI and see in plain language whether the device is online. See `device-search/README.md`. |
 
 Grafana and Kibana are installed on the monitoring host as system services and are not run from this repo. Their dashboards and data source are described below.
 
@@ -82,6 +83,10 @@ Configuration is read from `.env`:
 | `POLL_INTERVAL` | `15` | Seconds between queue-length reads |
 
 Monitored queues: `enterprise_alarm_report`, `enterprise_telemetry`, `sms-queue`, `enterprise_periodic`, `enterprise-command`.
+
+## Device check page
+
+For device onboarding: enter an IMEI, pick a parser (or "Any parser") and a time range (15 minutes, 1 hour, all of today). The page tells you whether the device is reaching the parser server, what to check if it is not, and lists what it sent in plain sentences. It reads the parser server's JSON logs of today over a restricted SSH key. Setup is in `device-search/README.md`.
 
 ## Alerts
 

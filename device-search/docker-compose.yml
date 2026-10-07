@@ -1,0 +1,16 @@
+# Device check page for onboarding. Runs on the monitoring host.
+# Settings come from a git-ignored .env in this folder (see sample.env).
+services:
+  device-search:
+    build: .
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    ports:
+      - "127.0.0.1:${PORT:-9811}:8080"   # nginx in front adds the password
+    environment:
+      PARSER_SSH: ${PARSER_SSH:?set PARSER_SSH in .env}
+      SSH_KEY: /ssh/id_ed25519
+      KNOWN_HOSTS: /ssh/known_hosts
+    volumes:
+      - ${SSH_DIR:?set SSH_DIR in .env}:/ssh:ro

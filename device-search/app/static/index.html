@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Device Check</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --text: #1d2330;
+      --muted: #6b7280;
+      --line: #e3e6eb;
+      --accent: #2563eb;
+      --good: #15803d;
+      --good-bg: #e8f6ed;
+      --warn: #b45309;
+      --warn-bg: #fdf3e2;
+      --bad: #b91c1c;
+      --bad-bg: #fdecec;
+      --info: #1d4ed8;
+      --info-bg: #e8effd;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12151b;
+        --card: #1b1f27;
+        --text: #e6e8ec;
+        --muted: #9aa1ad;
+        --line: #2b313c;
+        --accent: #60a5fa;
+        --good: #4ade80;
+        --good-bg: #16301f;
+        --warn: #fbbf24;
+        --warn-bg: #352a12;
+        --bad: #f87171;
+        --bad-bg: #3a1919;
+        --info: #93b4fd;
+        --info-bg: #1a2640;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0 0 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: 2fr 1.4fr 1.4fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+      width: 100%;
+      padding: 9px 11px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    input:focus,
+    select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+    }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 9px 20px;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    .coverage {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    .status {
+      border-left: 6px solid;
+    }
+
+    .status.good {
+      border-color: var(--good);
+    }
+
+    .status.warn {
+      border-color: var(--warn);
+    }
+
+    .status.bad {
+      border-color: var(--bad);
+    }
+
+    .status h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+    }
+
+    .status.good h2 {
+      color: var(--good);
+    }
+
+    .status.warn h2 {
+      color: var(--warn);
+    }
+
+    .status.bad h2 {
+      color: var(--bad);
+    }
+
+    .status p {
+      margin: 0 0 12px;
+    }
+
+    .hints {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .hints-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    dl {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 6px 18px;
+      margin: 0;
+    }
+
+    dt {
+      color: var(--muted);
+    }
+
+    dd {
+      margin: 0;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .tl {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .tl li {
+      display: grid;
+      grid-template-columns: 84px 1fr auto;
+      gap: 10px;
+      padding: 7px 0;
+      border-top: 1px solid var(--line);
+      align-items: start;
+    }
+
+    .tl li:first-child {
+      border-top: 0;
+    }
+
+    .time {
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: 1px;
+    }
+
+    .good .dot {
+      background: var(--good);
+    }
+
+    .warn .dot {
+      background: var(--warn);
+    }
+
+    .bad .dot {
+      background: var(--bad);
+    }
+
+    .info .dot {
+      background: var(--info);
+    }
+
+    .muted .dot {
+      background: var(--line);
+    }
+
+    .muted .text {
+      color: var(--muted);
+    }
+
+    .tag {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .raw {
+      grid-column: 1 / -1;
+      display: none;
+      font: 12px/1.4 ui-monospace, Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: var(--bg);
+      padding: 8px;
+      border-radius: 6px;
+      margin: 4px 0 0;
+    }
+
+    .show-raw .raw {
+      display: block;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .toolbar input {
+      width: auto;
+    }
+
+    .error {
+      color: var(--bad);
+      background: var(--bad-bg);
+    }
+
+    .note {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 720px) {
+      form {
+        grid-template-columns: 1fr;
+      }
+
+      dl {
+        grid-template-columns: 1fr;
+        gap: 0 0;
+      }
+
+      dd {
+        margin-bottom: 8px;
+      }
+
+      .tl li {
+        grid-template-columns: 70px 1fr;
+      }
+
+      .tl .links {
+        grid-column: 2;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>Device check</h1>
+    <p class="sub">Is a new device reaching the server? Enter its IMEI to see what the parser received.</p>
+
+    <div class="card">
+      <form id="f">
+        <div>
+          <label for="imei">IMEI (15 digits, printed on the device)</label>
+          <input id="imei" name="imei" inputmode="numeric" autocomplete="off" placeholder="e.g. 865784054861086"
+            required>
+        </div>
+        <div>
+          <label for="parser">Parser</label>
+          <select id="parser" name="parser">
+            <option value="all">Any parser</option>
+          </select>
+        </div>
+        <div>
+          <label for="window">Time</label>
+          <select id="window" name="window">
+            <option value="15">Last 15 minutes</option>
+            <option value="60" selected>Last 1 hour</option>
+            <option value="today">All of today</option>
+          </select>
+        </div>
+        <button id="go" type="submit">Search</button>
+      </form>
+      <div class="coverage" id="coverage"></div>
+    </div>
+
+    <div id="out"></div>
+  </main>
+
+  <template id="result">
+    <div class="card status">
+      <h2></h2>
+      <p class="summary"></p>
+      <div class="hints-title">What to check</div>
+      <ul class="hints"></ul>
+    </div>
+    <div class="card">
+      <h3>Details</h3>
+      <dl class="facts"></dl>
+    </div>
+    <div class="card timeline">
+      <div class="toolbar">
+        <h3>What happened (newest first)</h3>
+        <label><input type="checkbox" class="rawtoggle"> Show raw log (for developers)</label>
+      </div>
+      <ul class="tl"></ul>
+      <p class="note more hidden"></p>
+    </div>
+  </template>
+
+  <script>
+    const $ = (s, el = document) => el.querySelector(s);
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    const SHOW = 300;
+
+    async function loadParsers() {
+      try {
+        const r = await fetch("api/parsers");
+        const d = await r.json();
+        const sel = $("#parser");
+        for (const p of d.parsers || []) sel.append(new Option(p.name, p.id));
+        if (d.parsers?.length)
+          $("#coverage").textContent = "Data on the server today: " +
+            d.parsers.map(p => `${p.name} from ${p.from}`).join(", ") +
+            ". Older data has already been archived.";
+      } catch { $("#coverage").textContent = "Could not load the parser list."; }
+    }
+
+    function render(d) {
+      const out = $("#out");
+      out.replaceChildren($("#result").content.cloneNode(true));
+      const st = $(".status", out);
+      st.classList.add(d.level);
+      $("h2", st).textContent = d.title;
+      $(".summary", st).textContent = d.summary;
+      for (const h of d.hints) $(".hints", st).append(el("li", null, h));
+
+      const dl = $(".facts", out);
+      if (!d.facts.length) dl.closest(".card").remove();
+      for (const f of d.facts) {
+        dl.append(el("dt", null, f.label));
+        const dd = el("dd");
+        if (typeof f.value === "object") {
+          dd.append(f.value.text + " ");
+          if (f.value.link) { const a = el("a", null, "Open in map"); a.href = f.value.link; a.target = "_blank"; a.rel = "noopener"; dd.append(a); }
+        } else dd.textContent = f.value;
+        dl.append(dd);
+      }
+
+      const tlCard = $(".timeline", out);
+      if (!d.timeline.length) { tlCard.remove(); return; }
+      const ul = $(".tl", out);
+      for (const t of d.timeline.slice(0, SHOW)) {
+        const li = el("li", t.tone);
+        li.append(el("span", "time", t.time));
+        const txt = el("span"); txt.append(el("span", "dot"), el("span", "text", t.text));
+        li.append(txt);
+        const links = el("span", "links");
+        if (t.map) { const a = el("a", null, "map"); a.href = t.map; a.target = "_blank"; a.rel = "noopener"; links.append(a); }
+        links.append(" ", el("span", "tag", t.parser));
+        li.append(links, el("pre", "raw", t.raw));
+        ul.append(li);
+      }
+      const shown = Math.min(SHOW, d.timeline.length);
+      if (d.timeline.length > SHOW || d.truncated) {
+        const more = $(".more", out);
+        more.textContent = `Showing the newest ${shown} messages. Choose a shorter time to see a specific period.`;
+        more.classList.remove("hidden");
+      }
+      $(".rawtoggle", out).addEventListener("change", e => ul.classList.toggle("show-raw", e.target.checked));
+    }
+
+    $("#f").addEventListener("submit", async e => {
+      e.preventDefault();
+      const q = new URLSearchParams(new FormData(e.target));
+      const btn = $("#go"); btn.disabled = true; btn.textContent = "Searching...";
+      $("#out").replaceChildren(el("div", "card note", "Searching the parser logs, this takes a few seconds..."));
+      history.replaceState(null, "", "?" + q);
+      try {
+        const r = await fetch("api/search?" + q);
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Search failed");
+        render(d);
+      } catch (err) {
+        $("#out").replaceChildren(el("div", "card error", err.message));
+      } finally { btn.disabled = false; btn.textContent = "Search"; }
+    });
+
+    (async () => {
+      await loadParsers();
+      const q = new URLSearchParams(location.search);
+      for (const k of ["imei", "parser", "window"]) if (q.get(k)) $("#" + k).value = q.get(k);
+      if (q.get("imei")) $("#f").requestSubmit();
+    })();
+  </script>
+</body>
+
+</html>
