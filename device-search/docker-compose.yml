@@ -13,7 +13,7 @@ services:
       SSH_KEY: /ssh/id_ed25519
       KNOWN_HOSTS: /ssh/known_hosts
       BACKEND_URL: ${BACKEND_URL:-https://platform-admin.easytrax.com.bd}
-      ADMIN_URL: ${ADMIN_URL:-https://admin.easytrax.com.bd}
+      ADMIN_URL: ${ADMIN_URL:-https://easy-admin.etrax.xyz}
       ALLOWED_ROLES: ${ALLOWED_ROLES:-1,6}
     volumes:
       - ${SSH_DIR:?set SSH_DIR in .env}:/ssh:ro
