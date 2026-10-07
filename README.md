@@ -86,7 +86,7 @@ Monitored queues: `enterprise_alarm_report`, `enterprise_telemetry`, `sms-queue`
 
 ## Device check page
 
-For device onboarding: enter an IMEI, pick a parser (or "Any parser") and a time range (15 minutes, 1 hour, all of today). The page tells you whether the device is reaching the parser server, what to check if it is not, and lists what it sent in plain sentences. It reads the parser server's JSON logs of today over a restricted SSH key. Setup is in `device-search/README.md`.
+For device onboarding: enter an IMEI, pick a parser (or "Any parser") and a time range (15 minutes, 1 hour, all of today). The page tells you whether the device is reaching the parser server, what to check if it is not, and lists what it sent in plain sentences. It runs at `https://devicecheck.etrax.xyz`, is opened from the "Device check" button in the admin frontend (admins only, checked with their login token) and reads the parser server's JSON logs of today over a restricted SSH key. Setup is in `device-search/README.md`.
 
 ## Alerts
 
