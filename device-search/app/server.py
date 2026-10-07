@@ -54,7 +54,7 @@ def run_agent(*args):
     try:
         data = json.loads(out.stdout)
     except ValueError:
-        raise RuntimeError("could not reach the parser server") from None
+        raise RuntimeError("পার্সার সার্ভারে পৌঁছানো যায়নি") from None
     if "error" in data:
         raise RuntimeError(data["error"])
     return data
@@ -96,13 +96,13 @@ def search(query):
     parser = query.get("parser", ["all"])[0]
     window = query.get("window", ["60"])[0]
     if not re.fullmatch(r"\d{15,16}", imei):
-        raise ValueError("Enter the 15-digit IMEI printed on the device.")
+        raise ValueError("ডিভাইসে লেখা 15 সংখ্যার IMEI দিন।")
     if window not in ("15", "60", "today"):
-        raise ValueError("Unknown time range.")
+        raise ValueError("অজানা সময়।")
     if parser != "all" and not re.fullmatch(r"[a-z0-9_]{1,32}", parser):
-        raise ValueError("Unknown parser.")
+        raise ValueError("অজানা পার্সার।")
     if not SEARCHES.acquire(timeout=30):
-        raise RuntimeError("Too many searches at once, try again in a moment.")
+        raise RuntimeError("একসাথে অনেক খোঁজ চলছে, একটু পরে আবার চেষ্টা করুন।")
     try:
         result = run_agent("search", parser, imei, window_start(window))
     finally:
@@ -137,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as e:
             self.send(400, {"error": str(e)})
         except (RuntimeError, subprocess.TimeoutExpired) as e:
-            self.send(502, {"error": f"Search failed: {e}"})
+            self.send(502, {"error": f"খোঁজা যায়নি: {e}"})
 
     def log_message(self, fmt, *args):
         # Leave IMEIs out of the container log.

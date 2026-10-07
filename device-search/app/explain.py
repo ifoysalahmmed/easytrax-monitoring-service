@@ -1,4 +1,4 @@
-"""Turns a device_search.py result into plain language for the onboarding page."""
+"""Turns a device_search.py result into plain Bengali for the onboarding page."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -18,20 +18,20 @@ PARSER_NAMES = {
 }
 
 OPERATORS = {
-    "47001": "Grameenphone",
-    "47002": "Robi",
-    "47003": "Banglalink",
-    "47004": "Teletalk",
-    "47007": "Airtel",
+    "47001": "গ্রামীণফোন",
+    "47002": "রবি",
+    "47003": "বাংলালিংক",
+    "47004": "টেলিটক",
+    "47007": "এয়ারটেল",
 }
 
 STATES = {
-    "driving": "driving",
-    "idle": "engine on, standing still",
-    "engine_off": "engine off",
+    "driving": "চলছে",
+    "idle": "ইঞ্জিন চালু, দাঁড়িয়ে আছে",
+    "engine_off": "ইঞ্জিন বন্ধ",
 }
 
-WINDOWS = {"15": "in the last 15 minutes", "60": "in the last hour", "today": "today"}
+WINDOWS = {"15": "গত 15 মিনিটে", "60": "গত 1 ঘণ্টায়", "today": "আজ"}
 
 
 def parser_name(p):
@@ -52,11 +52,11 @@ def local_time(ts, now):
 def ago(ts, now):
     minutes = int((now - utc(ts)).total_seconds() // 60)
     if minutes < 1:
-        return "just now"
+        return "এইমাত্র"
     if minutes < 60:
-        return f"{minutes} min ago"
+        return f"{minutes} মিনিট আগে"
     hours, minutes = divmod(minutes, 60)
-    return f"{hours} h {minutes} min ago"
+    return f"{hours} ঘণ্টা {minutes} মিনিট আগে"
 
 
 def map_link(r):
@@ -77,86 +77,97 @@ def operator(imsi):
 
 
 def condition(r):
-    """Engine / movement / power, as a short phrase."""
+    """Engine / movement, as a short phrase."""
     parts = []
     if r.get("state") in STATES:
         parts.append(STATES[r["state"]])
     elif "engine" in r:
-        parts.append("engine on" if r["engine"] else "engine off")
+        parts.append("ইঞ্জিন চালু" if r["engine"] else "ইঞ্জিন বন্ধ")
     if r.get("speed"):
-        parts.append(f"{r['speed']} km/h")
+        parts.append(f"{r['speed']} কিমি/ঘণ্টা")
     return ", ".join(parts)
 
 
 def power(r):
     parts = []
     if r.get("gsm") is not None:
-        parts.append(f"mobile signal {r['gsm']}%")
+        parts.append(f"মোবাইল নেটওয়ার্ক {r['gsm']}%")
     if r.get("battery") is not None:
-        parts.append(f"battery {r['battery']}%")
+        parts.append(f"ব্যাটারি {r['battery']}%")
     if r.get("volt"):
-        parts.append(f"vehicle power {r['volt']} V")
+        parts.append(f"গাড়ির পাওয়ার {r['volt']} V")
     if r.get("charging") is True:
-        parts.append("charging")
+        parts.append("চার্জ হচ্ছে")
     return ", ".join(parts)
 
 
 def sentence(r):
-    """One timeline line for a record."""
+    """One timeline line for a record: (text, tone)."""
     kind, skipped = r["kind"], r["skipped"]
     if kind == "login":
-        return "Device connected and logged in", "good"
+        return "ডিভাইস সার্ভারে যুক্ত হয়েছে (লগইন)", "good"
     if kind == "location":
         if skipped and r["parser"] == "qs":
-            return ("Location not forwarded: engine off, the QS parser forwards "
-                    "one location every 5 minutes while parked (normal)", "muted")
+            return (
+                "লোকেশন পাঠানো হয়নি: ইঞ্জিন বন্ধ থাকলে QS পার্সার "
+                "প্রতি 5 মিনিটে একটি লোকেশন পাঠায় (স্বাভাবিক)",
+                "muted",
+            )
         if skipped:
-            return "Location skipped: repeated within 2 seconds (normal)", "muted"
-        text = "Location received"
+            return (
+                "লোকেশন পাঠানো হয়নি: 2 সেকেন্ডের মধ্যে একই তথ্য আবার এসেছে (স্বাভাবিক)",
+                "muted",
+            )
+        text = "লোকেশন পাওয়া গেছে"
         cond = condition(r)
         if cond:
             text += f": {cond}"
         if not has_fix(r):
-            return text + " - no GPS signal, last known position", "warn"
+            return text + " - GPS সিগন্যাল নেই, শেষ জানা অবস্থান", "warn"
         return text, "good"
     if kind == "heartbeat":
         if skipped:
             return (
-                "Status check-in skipped: repeated within 5 seconds (normal)",
+                "স্ট্যাটাস বার্তা পাঠানো হয়নি: 5 সেকেন্ডের মধ্যে আবার এসেছে (স্বাভাবিক)",
                 "muted",
             )
         details = ", ".join(p for p in (condition(r), power(r)) if p)
-        return "Status check-in" + (f": {details}" if details else ""), "good"
+        return "স্ট্যাটাস বার্তা (ডিভাইস সচল আছে)" + (
+            f": {details}" if details else ""
+        ), "good"
     if kind == "alarm":
         extra = []
         if r.get("vibration"):
-            extra.append("vibration")
+            extra.append("ঝাঁকুনি")
         if r.get("external_power") is True:
-            extra.append("external power connected")
-        details = ", ".join(extra + [p for p in (condition(r),) if p])
-        return "Alarm / status message" + (f": {details}" if details else ""), "info"
+            extra.append("বাইরের পাওয়ার যুক্ত")
+        if condition(r):
+            extra.append(condition(r))
+        details = ", ".join(extra)
+        return "অ্যালার্ম / স্ট্যাটাস বার্তা" + (f": {details}" if details else ""), "info"
     if kind == "info":
         if r.get("imsi"):
             op = operator(r["imsi"])
-            return f"Device reported its SIM card ({op or 'unknown operator'})", "info"
+            return f"ডিভাইস সিম কার্ডের তথ্য পাঠিয়েছে ({op or 'অজানা অপারেটর'})", "info"
         if r.get("volt"):
-            return f"Device information: vehicle power {r['volt']} V", "info"
-        return "Device information message", "info"
+            return f"ডিভাইসের তথ্য: গাড়ির পাওয়ার {r['volt']} V", "info"
+        return "ডিভাইসের তথ্য বার্তা", "info"
     if kind == "unhandled":
         return (
-            f"Message the parser does not understand (type 0x{r['pkt']}) - ignored",
+            f"পার্সার এই বার্তাটি বুঝতে পারেনি (টাইপ 0x{r['pkt']}) - বাদ দেওয়া হয়েছে",
             "bad",
         )
     if kind == "time_request":
-        return "Device asked the server for the time", "muted"
+        return "ডিভাইস সার্ভারের কাছে সময় জানতে চেয়েছে", "muted"
     if kind == "command_reply":
-        return "Device replied to a command", "info"
+        return "ডিভাইস একটি কমান্ডের উত্তর দিয়েছে", "info"
     if kind in ("lbs", "wifi"):
-        return "Rough location from mobile towers / WiFi (no GPS)", "warn"
-    return r.get("msg") or "Other message", "muted"
+        return "মোবাইল টাওয়ার / WiFi থেকে আনুমানিক অবস্থান (GPS নয়)", "warn"
+    return r.get("msg") or "অন্য বার্তা", "muted"
 
 
 def status(result, window, parser, now):
+    """(level, title, summary, hints) for the status box."""
     counts = result["counts"]
     last = result["last"]
     when = WINDOWS[window]
@@ -165,75 +176,65 @@ def status(result, window, parser, now):
 
     if result["total"] == 0:
         hints = [
-            "Is the device powered on? Check the power wire and the device LEDs.",
-            "Does the SIM card have mobile data (internet) balance?",
-            "Is the server IP address and port set correctly on the device (by SMS command)?",
-            "Is the APN set for the SIM operator?",
+            "ডিভাইসে কি পাওয়ার আছে? পাওয়ারের তার এবং ডিভাইসের লাইট (LED) দেখুন।",
+            "সিম কার্ডে কি মোবাইল ডেটা (ইন্টারনেট) ব্যালেন্স আছে?",
+            "ডিভাইসে সার্ভারের IP ঠিকানা ও পোর্ট (SMS কমান্ড দিয়ে) ঠিকভাবে সেট করা আছে কি?",
+            "সিম অপারেটরের APN সেট করা আছে কি?",
         ]
         if parser != "all":
-            hints.append('Is this the right parser? Try searching with "Any parser".')
+            hints.append("পার্সার কি ঠিক আছে? Parser থেকে \"Any parser\" বেছে আবার খুঁজুন।")
         if window != "today":
-            hints.append('Try a longer time: "All of today".')
+            hints.append("আরও বেশি সময় দেখুন: Time থেকে \"All of today\" বেছে নিন।")
         return (
             "bad",
-            "No data from this device",
-            (f"The parser has not received anything from this device {when}."),
+            "এই ডিভাইস থেকে কোনো তথ্য আসেনি",
+            f"পার্সার {when} এই ডিভাইস থেকে কিছুই পায়নি।",
             hints,
         )
 
     newest = max(r["t"] for r in last.values())
-    silent = now - utc(newest) > timedelta(minutes=LIVE_MINUTES)
-    if silent:
+    if now - utc(newest) > timedelta(minutes=LIVE_MINUTES):
         return (
             "warn",
-            "Device has gone quiet",
-            (
-                f"The device was sending data, but nothing has arrived since "
-                f"{local_time(newest, now)} ({ago(newest, now)})."
-            ),
+            "ডিভাইস চুপ হয়ে গেছে",
+            f"ডিভাইসটি তথ্য পাঠাচ্ছিল, কিন্তু {local_time(newest, now)} "
+            f"({ago(newest, now)}) এর পর আর কিছু আসেনি।",
             [
-                "The device may be switched off, or the vehicle may be somewhere without mobile network.",
-                "Check the SIM card's data balance.",
-                "If the power wire was disconnected, reconnect it and search again.",
+                "ডিভাইস বন্ধ হয়ে যেতে পারে, অথবা গাড়িটি এমন জায়গায় আছে যেখানে মোবাইল নেটওয়ার্ক নেই।",
+                "সিম কার্ডের ডেটা ব্যালেন্স দেখুন।",
+                "পাওয়ারের তার খুলে গিয়ে থাকলে আবার লাগিয়ে আবার খুঁজুন।",
             ],
         )
 
     if counts.get("unhandled") and not locations:
         return (
             "bad",
-            "Device sends messages the parser does not understand",
-            (
-                "The device is talking to the server, but the parser ignores its messages, "
-                "so no location reaches Easytrax."
-            ),
+            "ডিভাইস এমন বার্তা পাঠাচ্ছে যা পার্সার বোঝে না",
+            "ডিভাইসটি সার্ভারের সাথে যোগাযোগ করছে, কিন্তু পার্সার তার বার্তাগুলো বাদ দিচ্ছে, "
+            "তাই কোনো লোকেশন Easytrax-এ পৌঁছাচ্ছে না।",
             [
-                "The device model may not match this parser. Check that it is set to the right server port.",
-                "Tell the developers the IMEI and the message type shown below.",
+                "ডিভাইসের মডেল এই পার্সারের সাথে নাও মিলতে পারে। ডিভাইসটি সঠিক সার্ভার পোর্টে সেট করা আছে কি না দেখুন।",
+                "ডেভেলপারদের IMEI এবং নিচে দেখানো বার্তার টাইপ জানান।",
             ],
         )
 
     if not locations and not heartbeats:
         return (
             "warn",
-            "Connected, waiting for the first location",
-            ("The device has connected to the server but has not sent a location yet."),
-            [
-                "Wait a few minutes.",
-                "Check the device's upload interval setting.",
-            ],
+            "যুক্ত হয়েছে, প্রথম লোকেশনের অপেক্ষায়",
+            "ডিভাইসটি সার্ভারে যুক্ত হয়েছে কিন্তু এখনো কোনো লোকেশন পাঠায়নি।",
+            ["কয়েক মিনিট অপেক্ষা করুন।", "ডিভাইসের আপলোড ইন্টারভাল সেটিং দেখুন।"],
         )
 
     if not locations:
         return (
             "warn",
-            "Connected, but sending only status check-ins",
-            (
-                "The device is online but has not sent any location "
-                f"{when}. It only sends regular status check-ins."
-            ),
+            "যুক্ত আছে, কিন্তু শুধু স্ট্যাটাস বার্তা পাঠাচ্ছে",
+            f"ডিভাইসটি অনলাইনে আছে কিন্তু {when} কোনো লোকেশন পাঠায়নি, "
+            "শুধু নিয়মিত স্ট্যাটাস বার্তা পাঠাচ্ছে।",
             [
-                "Turn the vehicle's ignition on; many devices only send locations while it is on.",
-                "Check the device's upload interval setting.",
+                "গাড়ির ইঞ্জিন (ইগনিশন) চালু করুন; অনেক ডিভাইস শুধু ইঞ্জিন চালু থাকলে লোকেশন পাঠায়।",
+                "ডিভাইসের আপলোড ইন্টারভাল সেটিং দেখুন।",
             ],
         )
 
@@ -241,26 +242,37 @@ def status(result, window, parser, now):
     if last_loc and not has_fix(last_loc):
         return (
             "warn",
-            "Online, but no GPS signal",
-            (
-                "The device is sending data, but its GPS cannot find its position, "
-                "so it repeats the last known position."
-            ),
+            "অনলাইনে আছে, কিন্তু GPS সিগন্যাল নেই",
+            "ডিভাইসটি তথ্য পাঠাচ্ছে, কিন্তু GPS তার অবস্থান খুঁজে পাচ্ছে না, "
+            "তাই শেষ জানা অবস্থানটিই বারবার পাঠাচ্ছে।",
             [
-                "Move the vehicle or device outdoors, away from buildings and roofs.",
-                "Check that the GPS antenna is connected and not covered by metal.",
+                "গাড়ি বা ডিভাইসটি খোলা জায়গায় নিন, দালান ও ছাদ থেকে দূরে।",
+                "GPS অ্যান্টেনা ঠিকভাবে লাগানো আছে এবং ধাতু দিয়ে ঢাকা নেই কি না দেখুন।",
             ],
         )
 
     return (
         "good",
-        "Device is online and sending data",
-        (f"Locations are reaching the server. Last message {ago(newest, now)}."),
+        "ডিভাইস অনলাইনে আছে এবং তথ্য পাঠাচ্ছে",
+        f"লোকেশন সার্ভারে পৌঁছাচ্ছে। শেষ বার্তা এসেছে {ago(newest, now)}।",
         [
-            "If the device still shows offline in the Easytrax app, check that this IMEI is "
-            "added to the right account and vehicle in Easytrax.",
+            "Easytrax অ্যাপে এখনো অফলাইন দেখালে, এই IMEI সঠিক অ্যাকাউন্ট ও গাড়িতে "
+            "যোগ করা আছে কি না দেখুন।"
         ],
     )
+
+
+def message_counts(counts, skipped):
+    parts = [f"{counts.get('location', 0)}টি লোকেশন"]
+    if counts.get("heartbeat"):
+        parts.append(f"{counts['heartbeat']}টি স্ট্যাটাস বার্তা")
+    if counts.get("alarm"):
+        parts.append(f"{counts['alarm']}টি অ্যালার্ম")
+    if counts.get("unhandled"):
+        parts.append(f"{counts['unhandled']}টি বোঝা যায়নি")
+    if skipped:
+        parts.append(f"{sum(skipped.values())}টি পাঠানো হয়নি (স্বাভাবিক ফিল্টার)")
+    return ", ".join(parts)
 
 
 def explain(result, window, parser):
@@ -270,124 +282,67 @@ def explain(result, window, parser):
 
     facts = []
     if result["per_parser"]:
-        facts.append(
-            (
-                "Found on parser",
-                ", ".join(
-                    f"{parser_name(p)} ({v['count']} messages)"
-                    for p, v in result["per_parser"].items()
-                ),
-            )
-        )
+        facts.append((
+            "পার্সার",
+            ", ".join(f"{parser_name(p)} ({v['count']}টি বার্তা)"
+                      for p, v in result["per_parser"].items()),
+        ))
     if last:
         newest = max(r["t"] for r in last.values())
-        facts.append(
-            ("Last heard from", f"{local_time(newest, now)} ({ago(newest, now)})")
-        )
+        facts.append(("শেষ যোগাযোগ", f"{local_time(newest, now)} ({ago(newest, now)})"))
         login = last.get("login")
-        facts.append(
-            (
-                "Last login",
-                (
-                    local_time(login["t"], now)
-                    if login
-                    else "not in this period (normal if it connected earlier)"
-                ),
-            )
-        )
+        facts.append((
+            "শেষ লগইন",
+            local_time(login["t"], now) if login
+            else "এই সময়ের মধ্যে নেই (আগে যুক্ত হয়ে থাকলে এটা স্বাভাবিক)",
+        ))
         loc = last.get("location")
         if loc:
-            facts.append(
-                (
-                    "GPS signal",
-                    "yes" if has_fix(loc) else "no - position is the last known one",
-                )
-            )
+            facts.append(("GPS সিগন্যাল",
+                          "আছে" if has_fix(loc) else "নেই - শেষ জানা অবস্থান দেখানো হচ্ছে"))
             fix = result.get("last_fix") or loc
-            facts.append(
-                (
-                    "Last location",
-                    {
-                        "text": f"{fix.get('lat'):.5f}, {fix.get('lon'):.5f} at {local_time(fix['t'], now)}",
-                        "link": map_link(fix),
-                    },
-                )
-            )
+            facts.append((
+                "শেষ অবস্থান",
+                {
+                    "text": f"{fix.get('lat'):.5f}, {fix.get('lon'):.5f} "
+                            f"({local_time(fix['t'], now)})",
+                    "link": map_link(fix),
+                },
+            ))
         latest = max(last.values(), key=lambda r: r["t"])
         if condition(latest):
-            facts.append(("Vehicle", condition(latest)))
+            facts.append(("গাড়ি", condition(latest)))
         with_power = [r for r in last.values() if power(r)]
         if with_power:
-            facts.append(
-                ("Signal and power", power(max(with_power, key=lambda r: r["t"])))
-            )
+            facts.append(("নেটওয়ার্ক ও পাওয়ার",
+                          power(max(with_power, key=lambda r: r["t"]))))
         sim = result.get("last_sim")
         if sim:
-            facts.append(
-                (
-                    "SIM card",
-                    f"{operator(sim['imsi']) or 'unknown operator'} "
-                    f"(IMSI {sim['imsi']}, ICCID {sim['iccid']})",
-                )
-            )
-        facts.append(
-            (
-                "Messages",
-                ", ".join(
-                    filter(
-                        None,
-                        [
-                            f"{counts.get('location', 0)} locations",
-                            (
-                                f"{counts['heartbeat']} status check-ins"
-                                if counts.get("heartbeat")
-                                else ""
-                            ),
-                            f"{counts['alarm']} alarms" if counts.get("alarm") else "",
-                            (
-                                f"{counts['unhandled']} not understood"
-                                if counts.get("unhandled")
-                                else ""
-                            ),
-                            (
-                                f"{sum(skipped.values())} not forwarded (normal filtering)"
-                                if skipped
-                                else ""
-                            ),
-                        ],
-                    )
-                ),
-            )
-        )
+            facts.append((
+                "সিম কার্ড",
+                f"{operator(sim['imsi']) or 'অজানা অপারেটর'} "
+                f"(IMSI {sim['imsi']}, ICCID {sim['iccid']})",
+            ))
+        facts.append(("বার্তা", message_counts(counts, skipped)))
 
     timeline = []
     for r in reversed(result["records"]):
         if r["kind"] == "detail":
             continue
         text, tone = sentence(r)
-        timeline.append(
-            {
-                "time": local_time(r["t"], now),
-                "parser": parser_name(r["parser"]),
-                "text": text,
-                "tone": tone,
-                "map": (
-                    map_link(r)
-                    if r["kind"] == "location" and not r["skipped"]
-                    else None
-                ),
-                "raw": r["raw"],
-            }
-        )
+        timeline.append({
+            "time": local_time(r["t"], now),
+            "parser": parser_name(r["parser"]),
+            "text": text,
+            "tone": tone,
+            "map": map_link(r) if r["kind"] == "location" and not r["skipped"] else None,
+            "raw": r["raw"],
+        })
 
-    coverage = []
-    for p, first in sorted(result["coverage"].items()):
-        coverage.append(
-            {
-                "parser": parser_name(p),
-                "from": local_time(first, now) if first else None,
-            }
-        )
+    coverage = [
+        {"parser": parser_name(p), "from": local_time(first, now) if first else None}
+        for p, first in sorted(result["coverage"].items())
+    ]
 
     return {
         "imei": result["imei"],
