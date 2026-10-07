@@ -1,12 +1,23 @@
 # Device check
 
-A web page for device onboarding: enter an IMEI and see, in plain language, whether the device is reaching the parser server and what it sent today.
+A web page for device onboarding: enter an IMEI and see, in plain language, whether the device is reaching the parser server and what it sent today. Address: `https://devicecheck.etrax.xyz`, opened from the "Device check" button in the admin frontend's top bar.
 
 ```
-browser --> nginx (password) --> device-search service (monitoring host)
-        --> SSH, key limited to one command --> device_search.py (parser server)
-        --> parser JSON logs of today (read-only)
+admin frontend --(click, token handed over)--> device check tab
+device check tab --(jwt token)--> nginx (HTTPS) --> device-search service (monitoring host)
+device-search --> backend /user/api/user_details/ (is this a logged-in admin?)
+device-search --> SSH, key limited to one command --> device_search.py (parser server)
+              --> parser JSON logs of today (read-only)
 ```
+
+## Who can open it
+
+Only admins of the admin frontend (roles SystemAdmin and Admin, set in `ALLOWED_ROLES`):
+
+1. The admin frontend's top-bar button opens this page in a new tab.
+2. The new tab sends `device-check-ready` to the admin tab, which answers with the admin's token. Both sides check the other's address (`ADMIN_URL` here, `VITE_DEVICE_CHECK_URL` there).
+3. The page keeps the token in `sessionStorage`, so closing the tab erases it. Opened any other way (bookmark, link), the page only says to use the button in the admin panel.
+4. The service checks the token with the backend on every `/api/` call (answer cached for one minute) and returns 401 for anyone else. Tokens and IMEIs are not written to the log.
 
 The page searches the parser JSON logs that the parser server keeps until the nightly 04:00 UTC archive run. Each parser's "data from" time on the page is the first record still on the server; older data has moved to the storage server.
 
@@ -36,7 +47,7 @@ Parsers that do not write JSON logs (G65, GK309E, e1a, gp33, demo_all) cannot be
 | File | Runs on | Purpose |
 |---|---|---|
 | `agent/device_search.py` | parser server | Read-only search; Python 3 standard library only |
-| `app/server.py` | monitoring host | Web service, calls the agent over SSH |
+| `app/server.py` | monitoring host | Web service: checks the admin token, calls the agent over SSH |
 | `app/explain.py` | monitoring host | Turns results into plain-language status and timeline |
 | `app/static/index.html` | browser | The page |
 | `docker-compose.yml`, `Dockerfile` | monitoring host | Runs the web service on 127.0.0.1 |
@@ -64,7 +75,7 @@ With `command=` the key can only run the script; the requested command arrives i
    docker compose up -d --build
    ```
 
-4. Put nginx with a basic-auth password in front of `127.0.0.1:9811`.
+4. Put nginx with HTTPS for `devicecheck.etrax.xyz` in front of `127.0.0.1:9811` (certificate from Certbot).
 
 After a `git pull` that changes this folder, run `docker compose up -d --build` again here. If `agent/device_search.py` changed, copy it to the parser server again.
 

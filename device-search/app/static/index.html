@@ -337,6 +337,19 @@
         grid-column: 2;
       }
     }
+    .gate-text {
+      margin: 0 0 14px;
+    }
+
+    .button-link {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 9px 20px;
+      border-radius: 8px;
+    }
   </style>
 </head>
 
@@ -345,6 +358,13 @@
     <h1>ডিভাইস চেক</h1>
     <p class="sub">নতুন ডিভাইস কি সার্ভারে তথ্য পাঠাচ্ছে? ডিভাইসের IMEI লিখে Search চাপুন, পার্সার কী পেয়েছে তা দেখতে পাবেন।</p>
 
+    <div id="gate" class="card hidden">
+      <p class="gate-text">এই পেজ ব্যবহার করতে অ্যাডমিন প্যানেলে লগইন করে উপরের <b>Device check</b> বাটনে ক্লিক করুন।
+        ট্যাব বন্ধ করলে আবার অ্যাডমিন প্যানেল থেকে খুলতে হবে।</p>
+      <a class="button-link" href="__ADMIN_URL__">Open admin panel</a>
+    </div>
+
+    <div id="app" class="hidden">
     <div class="card">
       <form id="f">
         <div>
@@ -372,6 +392,7 @@
     </div>
 
     <div id="out"></div>
+    </div>
   </main>
 
   <template id="result">
@@ -399,18 +420,62 @@
     const $ = (s, el = document) => el.querySelector(s);
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const SHOW = 300;
+    const ADMIN_URL = "__ADMIN_URL__";
+    const TOKEN_KEY = "device-check-token";  // sessionStorage: erased when the tab closes
+    let token = null;
+
+    function storage(action, value) {
+      try {
+        if (action === "get") return sessionStorage.getItem(TOKEN_KEY);
+        if (action === "set") sessionStorage.setItem(TOKEN_KEY, value);
+        if (action === "clear") sessionStorage.removeItem(TOKEN_KEY);
+      } catch { /* storage blocked: token lives only in memory */ }
+      return null;
+    }
+
+    function showGate() {
+      token = null;
+      storage("clear");
+      $("#app").classList.add("hidden");
+      $("#gate").classList.remove("hidden");
+    }
+
+    async function api(path) {
+      const r = await fetch(path, { headers: { Authorization: "jwt " + token } });
+      const d = await r.json();
+      if (r.status === 401) { showGate(); throw new Error("login"); }
+      if (!r.ok) throw new Error(d.error || "খোঁজা যায়নি");
+      return d;
+    }
+
+    // The admin frontend opens this tab and hands over its token on request.
+    function receiveToken() {
+      return new Promise(resolve => {
+        if (!window.opener) return resolve(null);
+        const done = value => { window.removeEventListener("message", onMessage); resolve(value); };
+        const onMessage = e => {
+          if (e.origin !== ADMIN_URL || e.source !== window.opener) return;
+          const d = e.data || {};
+          if (d.type === "device-check-token" && typeof d.token === "string") done(d.token);
+        };
+        window.addEventListener("message", onMessage);
+        window.opener.postMessage({ type: "device-check-ready" }, ADMIN_URL);
+        setTimeout(() => done(null), 5000);
+      });
+    }
 
     async function loadParsers() {
       try {
-        const r = await fetch("api/parsers");
-        const d = await r.json();
+        const d = await api("api/parsers");
         const sel = $("#parser");
         for (const p of d.parsers || []) sel.append(new Option(p.name, p.id));
         if (d.parsers?.length)
           $("#coverage").textContent = "আজ সার্ভারে যে তথ্য আছে: " +
             d.parsers.map(p => `${p.name} ${p.from} থেকে`).join(", ") +
             "। এর আগের তথ্য আর্কাইভ করা হয়েছে।";
-      } catch { $("#coverage").textContent = "পার্সারের তালিকা আনা যায়নি।"; }
+      } catch (err) {
+        if (err.message !== "login") $("#coverage").textContent = "পার্সারের তালিকা আনা যায়নি।";
+      }
     }
 
     function render(d) {
@@ -464,17 +529,20 @@
       $("#out").replaceChildren(el("div", "card note", "পার্সারের লগ খোঁজা হচ্ছে, কয়েক সেকেন্ড লাগবে..."));
       history.replaceState(null, "", "?" + q);
       try {
-        const r = await fetch("api/search?" + q);
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || "খোঁজা যায়নি");
-        render(d);
+        render(await api("api/search?" + q));
       } catch (err) {
-        $("#out").replaceChildren(el("div", "card error", err.message));
+        if (err.message === "login") $("#out").replaceChildren();
+        else $("#out").replaceChildren(el("div", "card error", err.message));
       } finally { btn.disabled = false; btn.textContent = "Search"; }
     });
 
     (async () => {
+      token = storage("get") || await receiveToken();
+      if (!token) return showGate();
+      storage("set", token);
+      $("#app").classList.remove("hidden");
       await loadParsers();
+      if (!token) return;
       const q = new URLSearchParams(location.search);
       for (const k of ["imei", "parser", "window"]) if (q.get(k)) $("#" + k).value = q.get(k);
       if (q.get("imei")) $("#f").requestSubmit();

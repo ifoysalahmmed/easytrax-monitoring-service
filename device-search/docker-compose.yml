@@ -7,10 +7,13 @@ services:
     read_only: true
     tmpfs: [/tmp]
     ports:
-      - "127.0.0.1:${PORT:-9811}:8080"   # nginx in front adds the password
+      - "127.0.0.1:${PORT:-9811}:8080"   # nginx in front adds HTTPS
     environment:
       PARSER_SSH: ${PARSER_SSH:?set PARSER_SSH in .env}
       SSH_KEY: /ssh/id_ed25519
       KNOWN_HOSTS: /ssh/known_hosts
+      BACKEND_URL: ${BACKEND_URL:-https://platform-admin.easytrax.com.bd}
+      ADMIN_URL: ${ADMIN_URL:-https://admin.easytrax.com.bd}
+      ALLOWED_ROLES: ${ALLOWED_ROLES:-1,6}
     volumes:
       - ${SSH_DIR:?set SSH_DIR in .env}:/ssh:ro

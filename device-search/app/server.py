@@ -9,9 +9,17 @@ Settings (environment):
   KNOWN_HOSTS   known_hosts file with the parser server's host key
   LOCAL_AGENT   path to device_search.py: run it locally instead of over SSH
                 (for testing; LOG_DIR is passed through)
+  BACKEND_URL   Easytrax API that checks the admin's token
+  ADMIN_URL     admin frontend; the only page allowed to hand over the token
+  ALLOWED_ROLES user roles allowed in (default 1,6 = SystemAdmin, Admin)
   PORT          listen port (default 8080)
+
+Every /api/ call needs "Authorization: jwt <token>" of a logged-in admin. The
+token is checked with the backend's user_details endpoint and the answer is
+cached for a minute.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -21,14 +29,57 @@ import time
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
+from urllib.request import Request, urlopen
 
 from explain import LOCAL, explain, parser_name
 
 HERE = Path(__file__).parent
-PAGE = (HERE / "static" / "index.html").read_bytes()
+ADMIN_URL = os.environ.get("ADMIN_URL", "https://admin.easytrax.com.bd").rstrip("/")
+BACKEND_URL = os.environ.get("BACKEND_URL", "https://platform-admin.easytrax.com.bd").rstrip("/")
+ALLOWED_ROLES = {int(r) for r in os.environ.get("ALLOWED_ROLES", "1,6").split(",")}
+PAGE = (HERE / "static" / "index.html").read_text(encoding="utf-8")
+PAGE = PAGE.replace("__ADMIN_URL__", ADMIN_URL).encode()
 SEARCHES = threading.BoundedSemaphore(3)  # parallel searches allowed
 LIST_CACHE = {"at": 0, "data": None}
+TOKEN_CACHE = {}  # sha256(token) -> (valid until, allowed)
+TOKEN_RE = re.compile(r"jwt ([A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)")
+
+
+class NotAllowed(Exception):
+    pass
+
+
+def check_token(header):
+    """Raises NotAllowed unless the header holds a logged-in admin's token."""
+    m = TOKEN_RE.fullmatch(header or "")
+    if not m:
+        raise NotAllowed()
+    key = hashlib.sha256(m.group(1).encode()).hexdigest()
+    now = time.time()
+    cached = TOKEN_CACHE.get(key)
+    if cached and cached[0] > now:
+        if not cached[1]:
+            raise NotAllowed()
+        return
+    req = Request(f"{BACKEND_URL}/user/api/user_details/",
+                  headers={"Authorization": header, "Accept": "application/json"})
+    try:
+        with urlopen(req, timeout=10) as resp:
+            allowed = json.load(resp).get("role_id") in ALLOWED_ROLES
+    except HTTPError as e:
+        if e.code >= 500:
+            raise RuntimeError("লগইন যাচাই করা যায়নি") from None
+        allowed = False
+    except (URLError, TimeoutError, ValueError):
+        raise RuntimeError("লগইন যাচাই করা যায়নি") from None
+    if len(TOKEN_CACHE) > 1000:
+        for k in [k for k, v in TOKEN_CACHE.items() if v[0] <= now]:
+            del TOKEN_CACHE[k]
+    TOKEN_CACHE[key] = (now + 60, allowed)
+    if not allowed:
+        raise NotAllowed()
 
 
 def run_agent(*args):
@@ -118,6 +169,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Security-Policy", "frame-ancestors 'none'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -126,14 +180,18 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if url.path == "/":
                 self.send(200, PAGE, "text/html; charset=utf-8")
-            elif url.path == "/api/parsers":
-                self.send(200, {"parsers": parsers()})
-            elif url.path == "/api/search":
-                self.send(200, search(parse_qs(url.query)))
             elif url.path == "/health":
                 self.send(200, {"ok": True})
+            elif url.path in ("/api/parsers", "/api/search"):
+                check_token(self.headers.get("Authorization"))
+                if url.path == "/api/parsers":
+                    self.send(200, {"parsers": parsers()})
+                else:
+                    self.send(200, search(parse_qs(url.query)))
             else:
                 self.send(404, {"error": "not found"})
+        except NotAllowed:
+            self.send(401, {"error": "login"})
         except ValueError as e:
             self.send(400, {"error": str(e)})
         except (RuntimeError, subprocess.TimeoutExpired) as e:
