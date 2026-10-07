@@ -132,9 +132,10 @@ def sentence(r):
                 "muted",
             )
         details = ", ".join(p for p in (condition(r), power(r)) if p)
-        return "স্ট্যাটাস বার্তা (ডিভাইস সচল আছে)" + (
-            f": {details}" if details else ""
-        ), "good"
+        return (
+            "স্ট্যাটাস বার্তা (ডিভাইস সচল আছে)" + (f": {details}" if details else ""),
+            "good",
+        )
     if kind == "alarm":
         extra = []
         if r.get("vibration"):
@@ -144,11 +145,17 @@ def sentence(r):
         if condition(r):
             extra.append(condition(r))
         details = ", ".join(extra)
-        return "অ্যালার্ম / স্ট্যাটাস বার্তা" + (f": {details}" if details else ""), "info"
+        return (
+            "অ্যালার্ম / স্ট্যাটাস বার্তা" + (f": {details}" if details else ""),
+            "info",
+        )
     if kind == "info":
         if r.get("imsi"):
             op = operator(r["imsi"])
-            return f"ডিভাইস সিম কার্ডের তথ্য পাঠিয়েছে ({op or 'অজানা অপারেটর'})", "info"
+            return (
+                f"ডিভাইস সিম কার্ডের তথ্য পাঠিয়েছে ({op or 'অজানা অপারেটর'})",
+                "info",
+            )
         if r.get("volt"):
             return f"ডিভাইসের তথ্য: গাড়ির পাওয়ার {r['volt']} V", "info"
         return "ডিভাইসের তথ্য বার্তা", "info"
@@ -182,9 +189,11 @@ def status(result, window, parser, now):
             "সিম অপারেটরের APN সেট করা আছে কি?",
         ]
         if parser != "all":
-            hints.append("পার্সার কি ঠিক আছে? Parser থেকে \"Any parser\" বেছে আবার খুঁজুন।")
+            hints.append(
+                'পার্সার কি ঠিক আছে? Parser থেকে "Any parser" বেছে আবার খুঁজুন।'
+            )
         if window != "today":
-            hints.append("আরও বেশি সময় দেখুন: Time থেকে \"All of today\" বেছে নিন।")
+            hints.append('আরও বেশি সময় দেখুন: Time থেকে "All of today" বেছে নিন।')
         return (
             "bad",
             "এই ডিভাইস থেকে কোনো তথ্য আসেনি",
@@ -282,47 +291,65 @@ def explain(result, window, parser):
 
     facts = []
     if result["per_parser"]:
-        facts.append((
-            "পার্সার",
-            ", ".join(f"{parser_name(p)} ({v['count']}টি বার্তা)"
-                      for p, v in result["per_parser"].items()),
-        ))
+        facts.append(
+            (
+                "পার্সার",
+                ", ".join(
+                    f"{parser_name(p)} ({v['count']}টি বার্তা)"
+                    for p, v in result["per_parser"].items()
+                ),
+            )
+        )
     if last:
         newest = max(r["t"] for r in last.values())
         facts.append(("শেষ যোগাযোগ", f"{local_time(newest, now)} ({ago(newest, now)})"))
         login = last.get("login")
-        facts.append((
-            "শেষ লগইন",
-            local_time(login["t"], now) if login
-            else "এই সময়ের মধ্যে নেই (আগে যুক্ত হয়ে থাকলে এটা স্বাভাবিক)",
-        ))
+        facts.append(
+            (
+                "শেষ লগইন",
+                (
+                    local_time(login["t"], now)
+                    if login
+                    else "এই সময়ের মধ্যে নেই (আগে যুক্ত হয়ে থাকলে এটা স্বাভাবিক)"
+                ),
+            )
+        )
         loc = last.get("location")
         if loc:
-            facts.append(("GPS সিগন্যাল",
-                          "আছে" if has_fix(loc) else "নেই - শেষ জানা অবস্থান দেখানো হচ্ছে"))
+            facts.append(
+                (
+                    "GPS সিগন্যাল",
+                    "আছে" if has_fix(loc) else "নেই - শেষ জানা অবস্থান দেখানো হচ্ছে",
+                )
+            )
             fix = result.get("last_fix") or loc
-            facts.append((
-                "শেষ অবস্থান",
-                {
-                    "text": f"{fix.get('lat'):.5f}, {fix.get('lon'):.5f} "
-                            f"({local_time(fix['t'], now)})",
-                    "link": map_link(fix),
-                },
-            ))
+            facts.append(
+                (
+                    "শেষ অবস্থান",
+                    {
+                        "text": f"{fix.get('lat'):.5f}, {fix.get('lon'):.5f} "
+                        f"({local_time(fix['t'], now)})",
+                        "link": map_link(fix),
+                    },
+                )
+            )
         latest = max(last.values(), key=lambda r: r["t"])
         if condition(latest):
             facts.append(("গাড়ি", condition(latest)))
         with_power = [r for r in last.values() if power(r)]
         if with_power:
-            facts.append(("নেটওয়ার্ক ও পাওয়ার",
-                          power(max(with_power, key=lambda r: r["t"]))))
+            facts.append(
+                ("নেটওয়ার্ক ও পাওয়ার", power(max(with_power, key=lambda r: r["t"])))
+            )
         sim = result.get("last_sim")
         if sim:
-            facts.append((
-                "সিম কার্ড",
-                f"{operator(sim['imsi']) or 'অজানা অপারেটর'} "
-                f"(IMSI {sim['imsi']}, ICCID {sim['iccid']})",
-            ))
+            facts.append(
+                (
+                    "সিম কার্ড",
+                    f"{operator(sim['imsi']) or 'অজানা অপারেটর'} "
+                    f"(IMSI {sim['imsi']}, ICCID {sim['iccid']})",
+                )
+            )
         facts.append(("বার্তা", message_counts(counts, skipped)))
 
     timeline = []
@@ -330,14 +357,20 @@ def explain(result, window, parser):
         if r["kind"] == "detail":
             continue
         text, tone = sentence(r)
-        timeline.append({
-            "time": local_time(r["t"], now),
-            "parser": parser_name(r["parser"]),
-            "text": text,
-            "tone": tone,
-            "map": map_link(r) if r["kind"] == "location" and not r["skipped"] else None,
-            "raw": r["raw"],
-        })
+        timeline.append(
+            {
+                "time": local_time(r["t"], now),
+                "parser": parser_name(r["parser"]),
+                "text": text,
+                "tone": tone,
+                "map": (
+                    map_link(r)
+                    if r["kind"] == "location" and not r["skipped"]
+                    else None
+                ),
+                "raw": r["raw"],
+            }
+        )
 
     coverage = [
         {"parser": parser_name(p), "from": local_time(first, now) if first else None}

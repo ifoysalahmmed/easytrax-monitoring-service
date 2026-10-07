@@ -36,7 +36,7 @@ from urllib.request import Request, urlopen
 from explain import LOCAL, explain, parser_name
 
 HERE = Path(__file__).parent
-ADMIN_URL = os.environ.get("ADMIN_URL", "https://admin.easytrax.com.bd").rstrip("/")
+ADMIN_URL = os.environ.get("ADMIN_URL", "https://easy-admin.etrax.xyz").rstrip("/")
 BACKEND_URL = os.environ.get("BACKEND_URL", "https://platform-admin.easytrax.com.bd").rstrip("/")
 ALLOWED_ROLES = {int(r) for r in os.environ.get("ALLOWED_ROLES", "1,6").split(",")}
 PAGE = (HERE / "static" / "index.html").read_text(encoding="utf-8")
