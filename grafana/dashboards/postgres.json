@@ -8,6 +8,16 @@
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
+  "links": [
+    {
+      "title": "Device check",
+      "type": "link",
+      "icon": "external link",
+      "url": "http://187.127.207.95:8090/",
+      "targetBlank": true,
+      "tooltip": "Search a device by IMEI (onboarding)"
+    }
+  ],
   "refresh": "30s",
   "time": {
     "from": "now-6h",
