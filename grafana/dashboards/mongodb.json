@@ -507,7 +507,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "00b5s",
+          "unit": "µs",
           "min": 0
         },
         "overrides": []
