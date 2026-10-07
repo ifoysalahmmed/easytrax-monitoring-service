@@ -1,10 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="bn">
 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Device Check</title>
+  <title>ডিভাইস চেক</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap">
   <style>
     :root {
       --bg: #f5f6f8;
@@ -50,7 +52,7 @@
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font: 15px/1.6 "Noto Sans Bengali", "Nirmala UI", "Vrinda", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     }
 
     main {
@@ -208,7 +210,7 @@
 
     .tl li {
       display: grid;
-      grid-template-columns: 84px 1fr auto;
+      grid-template-columns: 76px 1fr auto;
       gap: 10px;
       padding: 7px 0;
       border-top: 1px solid var(--line);
@@ -340,8 +342,8 @@
 
 <body>
   <main>
-    <h1>Device check</h1>
-    <p class="sub">Is a new device reaching the server? Enter its IMEI to see what the parser received.</p>
+    <h1>ডিভাইস চেক</h1>
+    <p class="sub">নতুন ডিভাইস কি সার্ভারে তথ্য পাঠাচ্ছে? ডিভাইসের IMEI লিখে Search চাপুন, পার্সার কী পেয়েছে তা দেখতে পাবেন।</p>
 
     <div class="card">
       <form id="f">
@@ -376,16 +378,16 @@
     <div class="card status">
       <h2></h2>
       <p class="summary"></p>
-      <div class="hints-title">What to check</div>
+      <div class="hints-title">যা দেখতে হবে</div>
       <ul class="hints"></ul>
     </div>
     <div class="card">
-      <h3>Details</h3>
+      <h3>বিস্তারিত</h3>
       <dl class="facts"></dl>
     </div>
     <div class="card timeline">
       <div class="toolbar">
-        <h3>What happened (newest first)</h3>
+        <h3>কী ঘটেছে (সবচেয়ে নতুন আগে)</h3>
         <label><input type="checkbox" class="rawtoggle"> Show raw log (for developers)</label>
       </div>
       <ul class="tl"></ul>
@@ -405,10 +407,10 @@
         const sel = $("#parser");
         for (const p of d.parsers || []) sel.append(new Option(p.name, p.id));
         if (d.parsers?.length)
-          $("#coverage").textContent = "Data on the server today: " +
-            d.parsers.map(p => `${p.name} from ${p.from}`).join(", ") +
-            ". Older data has already been archived.";
-      } catch { $("#coverage").textContent = "Could not load the parser list."; }
+          $("#coverage").textContent = "আজ সার্ভারে যে তথ্য আছে: " +
+            d.parsers.map(p => `${p.name} ${p.from} থেকে`).join(", ") +
+            "। এর আগের তথ্য আর্কাইভ করা হয়েছে।";
+      } catch { $("#coverage").textContent = "পার্সারের তালিকা আনা যায়নি।"; }
     }
 
     function render(d) {
@@ -449,7 +451,7 @@
       const shown = Math.min(SHOW, d.timeline.length);
       if (d.timeline.length > SHOW || d.truncated) {
         const more = $(".more", out);
-        more.textContent = `Showing the newest ${shown} messages. Choose a shorter time to see a specific period.`;
+        more.textContent = `সবচেয়ে নতুন ${shown}টি বার্তা দেখানো হচ্ছে। নির্দিষ্ট সময় দেখতে Time থেকে ছোট সময় বেছে নিন।`;
         more.classList.remove("hidden");
       }
       $(".rawtoggle", out).addEventListener("change", e => ul.classList.toggle("show-raw", e.target.checked));
@@ -459,12 +461,12 @@
       e.preventDefault();
       const q = new URLSearchParams(new FormData(e.target));
       const btn = $("#go"); btn.disabled = true; btn.textContent = "Searching...";
-      $("#out").replaceChildren(el("div", "card note", "Searching the parser logs, this takes a few seconds..."));
+      $("#out").replaceChildren(el("div", "card note", "পার্সারের লগ খোঁজা হচ্ছে, কয়েক সেকেন্ড লাগবে..."));
       history.replaceState(null, "", "?" + q);
       try {
         const r = await fetch("api/search?" + q);
         const d = await r.json();
-        if (!r.ok) throw new Error(d.error || "Search failed");
+        if (!r.ok) throw new Error(d.error || "খোঁজা যায়নি");
         render(d);
       } catch (err) {
         $("#out").replaceChildren(el("div", "card error", err.message));
