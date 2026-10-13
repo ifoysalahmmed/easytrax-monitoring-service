@@ -36,8 +36,10 @@ from urllib.request import Request, urlopen
 from explain import LOCAL, explain, parser_name
 
 HERE = Path(__file__).parent
-ADMIN_URL = os.environ.get("ADMIN_URL", "https://easy-admin.etrax.xyz").rstrip("/")
-BACKEND_URL = os.environ.get("BACKEND_URL", "https://platform-admin.easytrax.com.bd").rstrip("/")
+ADMIN_URL = os.environ.get("ADMIN_URL", "https://admin.easytrax.com.bd").rstrip("/")
+BACKEND_URL = os.environ.get(
+    "BACKEND_URL", "https://platform-admin.easytrax.com.bd"
+).rstrip("/")
 ALLOWED_ROLES = {int(r) for r in os.environ.get("ALLOWED_ROLES", "1,6").split(",")}
 PAGE = (HERE / "static" / "index.html").read_text(encoding="utf-8")
 PAGE = PAGE.replace("__ADMIN_URL__", ADMIN_URL).encode()
@@ -64,9 +66,14 @@ def check_token(header):
             raise NotAllowed()
         return
     # Cloudflare in front of the backend blocks the default Python User-Agent.
-    req = Request(f"{BACKEND_URL}/user/api/user_details/",
-                  headers={"Authorization": header, "Accept": "application/json",
-                           "User-Agent": "easytrax-device-check/1.0"})
+    req = Request(
+        f"{BACKEND_URL}/user/api/user_details/",
+        headers={
+            "Authorization": header,
+            "Accept": "application/json",
+            "User-Agent": "easytrax-device-check/1.0",
+        },
+    )
     try:
         with urlopen(req, timeout=10) as resp:
             role = json.load(resp).get("role_id")
@@ -75,8 +82,11 @@ def check_token(header):
             print(f"login refused: role {role} not allowed", flush=True)
     except HTTPError as e:
         is_backend = "json" in (e.headers.get("Content-Type") or "")
-        print(f"login refused: backend answered {e.code}"
-              f"{'' if is_backend else ' (not the backend, e.g. a proxy block page)'}", flush=True)
+        print(
+            f"login refused: backend answered {e.code}"
+            f"{'' if is_backend else ' (not the backend, e.g. a proxy block page)'}",
+            flush=True,
+        )
         if e.code >= 500 or not is_backend:
             raise RuntimeError("লগইন যাচাই করা যায়নি") from None
         allowed = False
